@@ -1,0 +1,147 @@
+#include <iostream>
+#include <cmath>      // Для sqrt()
+#include <limits>     // Для проверки деления на ноль
+using namespace std;
+
+// ========== ЗАДАНИЕ 1 ==========
+/**
+ * Шаблон функции для вычисления среднего арифметического массива
+ * T - тип элементов массива (int, double, float...)
+ * size - размер массива
+ * Возвращает среднее значение типа double (более точное)
+ */
+template <typename T>
+double average(const T arr[], int size) {
+    if (size <= 0) return 0.0;           // Защита от пустого массива
+    
+    T sum = 0;                           // Сумма элементов
+    for (int i = 0; i < size; i++) {
+        sum += arr[i];                   // Накопление суммы
+    }
+    return static_cast<double>(sum) / size; // Приведение к double для точности
+}
+
+// ========== ЗАДАНИЕ 2 ==========
+/**
+ * ШАБЛОН 1: РЕШЕНИЕ ЛИНЕЙНОГО УРАВНЕНИЯ a*x + b = 0
+ * Параметры: a, b - коэффициенты
+ * x - ссылка для сохранения корня
+ * Возвращает: true - решение найдено, false - нет корней (a=0)
+ */
+template <typename T>
+bool solveLinear(T a, T b, double& x) {
+    if (a == 0) return false;           // Деление на ноль: 0*x + b = 0
+    x = -static_cast<double>(b) / a;    // x = -b/a
+    return true;
+}
+
+/**
+ * ШАБЛОН 2: РЕШЕНИЕ КВАДРАТНОГО УРАВНЕНИЯ a*x² + b*x + c = 0
+ * Параметры: a, b, c - коэффициенты
+ * x1, x2 - ссылки для сохранения корней
+ * Возвращает: количество корней (0, 1 или 2)
+ */
+template <typename T>
+int solveQuadratic(T a, T b, T c, double& x1, double& x2) {
+    // Случай 1: a = 0 -> вырождается в линейное уравнение
+    if (a == 0) {
+        if (solveLinear(b, c, x1)) {
+            x2 = x1;    // Один корень (дублируем для единообразия)
+            return 1;
+        }
+        return 0;       // Нет корней
+    }
+    
+    // Случай 2: полное квадратное уравнение
+    double D = static_cast<double>(b) * b - 4 * static_cast<double>(a) * c;  // Дискриминант
+    
+    if (D < 0) return 0;                // Действительных корней нет
+    
+    if (D == 0) {
+        x1 = x2 = -static_cast<double>(b) / (2.0 * a);  // Один корень (кратный)
+        return 1;
+    }
+    
+    // D > 0 - два различных корня
+    double sqrtD = sqrt(D);
+    x1 = (-static_cast<double>(b) - sqrtD) / (2.0 * a);
+    x2 = (-static_cast<double>(b) + sqrtD) / (2.0 * a);
+    return 2;
+}
+
+// ========== ЗАДАНИЕ 3 ==========
+/**
+ * Шаблон функции для нахождения максимума из двух значений
+ * T - тип сравниваемых значений
+ * Возвращает наибольшее значение
+ */
+template <typename T>
+T max(T a, T b) {
+    return (a > b) ? a : b;    // Тернарный оператор: если a > b, то a, иначе b
+}
+
+// ========== ЗАДАНИЕ 4==========
+/**
+ * Шаблон функции для нахождения минимума из двух значений
+ * T - тип сравниваемых значений
+ * Возвращает наименьшее значение
+ */
+template <typename T>
+T min(T a, T b) {
+    return (a < b) ? a : b;    // Тернарный оператор: если a < b, то a, иначе b
+}
+
+// ========== ТЕСТИРОВАНИЕ ВСЕХ ФУНКЦИЙ ==========
+int main() {
+    cout << "========== ТЕСТ ЗАДАНИЯ 1 ==========\n";
+    
+    // Тест с int
+    int intArr[] = {1, 2, 3, 4, 5};
+    cout << "Массив int: среднее = " << average(intArr, 5) << "\n";
+    
+    // Тест с double
+    double dblArr[] = {1.5, 2.5, 3.5, 4.5};
+    cout << "Массив double: среднее = " << average(dblArr, 4) << "\n";
+    
+    // Тест с char (символы)
+    char charArr[] = {'A', 'B', 'C'};  // ASCII: 65,66,67
+    cout << "Массив char: среднее = " << average(charArr, 3) << " (код символа)\n\n";
+    
+    cout << "========== ТЕСТ ЗАДАНИЯ 2 ==========\n";
+    
+    // Тест линейного уравнения: 2x + 4 = 0 -> x = -2
+    double x;
+    if (solveLinear(2.0, 4.0, x))
+        cout << "Линейное (2x+4=0): x = " << x << "\n";
+    
+    // Тест квадратного уравнения: x² - 5x + 6 = 0 -> x1 = 2, x2 = 3
+    double x1, x2;
+    int roots = solveQuadratic(1, -5, 6, x1, x2);
+    cout << "Квадратное (x²-5x+6=0): корней = " << roots 
+         << ", x1 = " << x1 << ", x2 = " << x2 << "\n";
+    
+    // Тест: a=0 -> вырождается в линейное: 2x + 4 = 0
+    roots = solveQuadratic(0, 2, 4, x1, x2);
+    cout << "Квадратное с a=0 (2x+4=0): корней = " << roots 
+         << ", x = " << x1 << "\n\n";
+    
+    cout << "========== ТЕСТ ЗАДАНИЙ 3 и 4 ==========\n";
+    
+    // Тест с int
+    cout << "int: max(10, 20) = " << max(10, 20) << "\n";
+    cout << "int: min(10, 20) = " << min(10, 20) << "\n";
+    
+    // Тест с double
+    cout << "double: max(3.14, 2.71) = " << max(3.14, 2.71) << "\n";
+    cout << "double: min(3.14, 2.71) = " << min(3.14, 2.71) << "\n";
+    
+    // Тест с char
+    cout << "char: max('A', 'Z') = " << max('A', 'Z') << "\n";
+    cout << "char: min('A', 'Z') = " << min('A', 'Z') << "\n";
+    
+    // Тест со строками
+    cout << "string: max(\"apple\", \"banana\") = " << max("apple", "banana") << "\n";
+    cout << "string: min(\"apple\", \"banana\") = " << min("apple", "banana") << "\n";
+    
+    return 0;
+}
