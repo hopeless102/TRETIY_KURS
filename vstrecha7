@@ -1,0 +1,98 @@
+#include <iostream>
+#include <string>
+using namespace std;
+
+// ----------ЗАДАНИЕ 1--------
+class Circle {
+    double radius; // Радиус окружности
+    
+public:
+    // Конструктор чтобы небыло отрицательного радиуса
+    Circle(double r = 0.0) { radius = r < 0 ? 0 : r; }
+    
+    // Геттер для радиуса
+    double getRadius() const { return radius; }
+    
+    // Длина окружности: L = 2πR
+    double length() const { return 2 * 3.14159 * radius; }
+    
+    // === ПЕРЕГРУЗКА ОПЕРАТОРОВ ===
+    // 1. Сравнение радиусов (равенство)
+    bool operator==(const Circle& other) const { return radius == other.radius; }
+    
+    // 2. Сравнение длин окружностей (больше)
+    bool operator>(const Circle& other) const { return length() > other.length(); }
+    
+    // 3. Увеличение радиуса
+    Circle& operator+=(double v) { if(v > 0) radius += v; return *this; }
+    
+    // 4. Уменьшение радиуса (не ниже 0)
+    Circle& operator-=(double v) { if(v > 0) { radius -= v; if(radius < 0) radius = 0; } return *this; }
+    
+    // Дружественная функция для вывода
+    friend ostream& operator<<(ostream& os, const Circle& c) {
+        os << "Радиус: " << c.radius << ", Длина: " << c.length();
+        return os;
+    }
+};
+
+// --------ЗАДАНИЕ 2--------
+class Airplane {
+    string model;      // модель самолета
+    int maxPass;       // Максимум пассажиров
+    int currPass;      // Текущие пассажиры
+    
+public:
+    // Конструктор
+    Airplane(string m, int max, int curr = 0) : model(m), maxPass(max) {
+        currPass = (curr > max) ? max : (curr < 0 ? 0 : curr); // Корректировка в допустимый диапазон
+    }
+    
+    // ---- ПЕРЕГРУЗКА ОПЕРАТОРОВ-----
+    // 1. Равенство по типу (модели)
+    bool operator==(const Airplane& other) const { return model == other.model; }
+    
+    // 2. Сравнение по максимальному числу пассажиров
+    bool operator>(const Airplane& other) const { return maxPass > other.maxPass; }
+    
+    // 3. Префиксный ++ - посадка пассажира
+    Airplane& operator++() { if(currPass < maxPass) ++currPass; return *this; }
+    
+    // 4. Префиксный -- - высадка пассажира
+    Airplane& operator--() { if(currPass > 0) --currPass; return *this; }
+    
+    // Дружественная функция для вывода
+    friend ostream& operator<<(ostream& os, const Airplane& a) {
+        os << a.model << " | Вместимость: " << a.maxPass << " | Пассажиров: " << a.currPass;
+        return os;
+    }
+};
+
+// ---------ТЕСТИРОВАНИЕ-------
+int main() {
+    cout << " ТЕСТ КЛАССА CIRCLE \n";
+    Circle c1(5), c2(5), c3(7);
+    
+    cout << "c1: " << c1 << "\nc2: " << c2 << "\nc3: " << c3 << "\n\n";
+    cout << "c1 == c2: " << (c1 == c2 ? "Да" : "Нет") << "\n";
+    cout << "c1 == c3: " << (c1 == c3 ? "Да" : "Нет") << "\n";
+    cout << "c3 > c1: " << (c3 > c1 ? "Да" : "Нет") << "\n\n";
+    
+    c1 += 3; cout << "c1 += 3: " << c1 << "\n";
+    c1 -= 10; cout << "c1 -= 10: " << c1 << "\n\n";
+    
+    cout << " ТЕСТ КЛАССА AIRPLANE  \n";
+    Airplane b737("Boeing 737", 180, 150);
+    Airplane a320("Airbus A320", 190, 190);
+    Airplane b737_2("Boeing 737", 180, 100);
+    
+    cout << b737 << "\n" << a320 << "\n" << b737_2 << "\n\n";
+    cout << "Одинаковые типы (Boeing 737)? " << (b737 == b737_2 ? "Да" : "Нет") << "\n";
+    cout << "Boeing 737 == Airbus A320? " << (b737 == a320 ? "Да" : "Нет") << "\n";
+    cout << "Airbus A320 > Boeing 737? " << (a320 > b737 ? "Да" : "Нет") << "\n\n";
+    
+    ++b737; cout << "++Boeing 737: " << b737 << "\n";
+    --a320; cout << "--Airbus A320: " << a320 << "\n";
+    
+    return 0;
+}
