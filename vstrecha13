@@ -1,0 +1,231 @@
+#include <iostream>
+using namespace std;
+
+// ========== ЗАДАНИЕ 1 ==========
+class CharStackStatic {
+private:
+    char* data;     // Массив для хранения символов
+    int capacity;   // Максимальный размер стека
+    int top;        // Индекс верхнего элемента (-1 если стек пуст)
+
+public:
+    //  выделяем память под capacity элементов
+    CharStackStatic(int size) : capacity(size), top(-1) {
+        data = new char[capacity];
+    }
+
+    // освобождаем память
+    ~CharStackStatic() {
+        delete[] data;
+    }
+
+    // 1. Помещение символа в стек
+    bool push(char c) {
+        if (isFull()) return false;  // Стек полный
+        data[++top] = c;
+        return true;
+    }
+
+    // 2. Выталкивание символа из стека
+    bool pop(char& c) {
+        if (isEmpty()) return false; // Стек пустой
+        c = data[top--];
+        return true;
+    }
+
+    // 3. Подсчет количества символов в стеке
+    int size() const {
+        return top + 1;
+    }
+
+    // 4. Проверка: пустой ли стек?
+    bool isEmpty() const {
+        return top == -1;
+    }
+
+    // 5. Проверка: полный ли стек?
+    bool isFull() const {
+        return top == capacity - 1;
+    }
+
+    // 6. Очистка стека
+    void clear() {
+        top = -1;
+    }
+
+    // 7. Получение верхнего символа без выталкивания
+    bool peek(char& c) const {
+        if (isEmpty()) return false;
+        c = data[top];
+        return true;
+    }
+
+    // Для отладки: вывод содержимого стека
+    void print() const {
+        cout << "Стек (снизу вверх): [";
+        for (int i = 0; i <= top; i++) {
+            cout << data[i];
+            if (i < top) cout << ", ";
+        }
+        cout << "]  (размер: " << size() << "/" << capacity << ")" << endl;
+    }
+};
+
+// ========== ЗАДАНИЕ 2 ==========
+class CharStackDynamic {
+private:
+    char* data;     // Массив для хранения символов
+    int capacity;   // Текущий размер выделенной памяти
+    int top;        // Индекс верхнего элемента
+    int growBy;     // Шаг расширения
+
+    // Приватный метод: расширение стека
+    void resize(int newCapacity) {
+        char* newData = new char[newCapacity];  // Новая память
+        for (int i = 0; i <= top; i++) {        // Копируем элементы
+            newData[i] = data[i];
+        }
+        delete[] data;                          // Удаляем старую память
+        data = newData;                        // Переключаемся на новую
+        capacity = newCapacity;                // Обновляем размер
+    }
+
+public:
+    // Конструктор
+    CharStackDynamic(int initialSize = 10, int grow = 5)
+        : capacity(initialSize), top(-1), growBy(grow) {
+        data = new char[capacity];
+    }
+
+    // Деструктор
+    ~CharStackDynamic() {
+        delete[] data;
+    }
+
+    // 1. Помещение символа в стек
+    void push(char c) {
+        if (isFull()) {
+            resize(capacity + growBy);  // Расширяем стек
+        }
+        data[++top] = c;
+    }
+
+    // 2. Выталкивание символа из стека
+    bool pop(char& c) {
+        if (isEmpty()) return false;
+        c = data[top--];
+        return true;
+    }
+
+    // 3. Подсчет количества символов
+    int size() const {
+        return top + 1;
+    }
+
+    // 4. Проверка: пустой?
+    bool isEmpty() const {
+        return top == -1;
+    }
+
+    // 5. Проверка: полный? (в динамическом стеке - никогда)
+    bool isFull() const {
+        return top == capacity - 1;
+    }
+
+    // 6. Очистка стека
+    void clear() {
+        top = -1;
+    }
+
+    // 7. Получение верхнего символа без выталкивания
+    bool peek(char& c) const {
+        if (isEmpty()) return false;
+        c = data[top];
+        return true;
+    }
+
+    // 8. Получить текущую вместимость
+    int getCapacity() const {
+        return capacity;
+    }
+
+    // Для отладки
+    void print() const {
+        cout << "Стек [cap:" << capacity << "]: [";
+        for (int i = 0; i <= top; i++) {
+            cout << data[i];
+            if (i < top) cout << ", ";
+        }
+        cout << "]  (элементов: " << size() << ")" << endl;
+    }
+};
+
+// ========== ТЕСТИРОВАНИЕ ==========
+int main() {
+    setlocale(LC_ALL, "Russian");
+    cout << "=== ЗАДАНИЕ 1 ===" << endl;
+    CharStackStatic stack1(3);  // Стек на 3 символа
+
+    cout << "Пустой? " << stack1.isEmpty() << endl;
+    cout << "Полный? " << stack1.isFull() << endl << endl;
+
+    stack1.push('A');
+    stack1.push('B');
+    stack1.push('C');
+    stack1.print();
+    cout << "Пустой? " << stack1.isEmpty() << endl;
+    cout << "Полный? " << stack1.isFull() << endl;
+    cout << "Размер: " << stack1.size() << endl;
+
+    char ch;
+    stack1.peek(ch);
+    cout << "Верхний (без удаления): " << ch << endl;
+
+    stack1.push('D');  // Попытка добавить в полный стек - не сработает
+    cout << "Попытка добавить D: ";
+    stack1.print();
+
+    stack1.pop(ch);
+    cout << "Извлекли: " << ch << endl;
+    stack1.print();
+
+    stack1.clear();
+    cout << "После очистки: ";
+    stack1.print();
+    cout << "Пустой? " << stack1.isEmpty() << endl << endl;
+
+    cout << "=== ЗАДАНИЕ 2===" << endl;
+    CharStackDynamic stack2(3, 2);  // Начальный размер 3, шаг расширения 2
+
+    cout << "Начальный capacity: " << stack2.getCapacity() << endl;
+
+    stack2.push('A');
+    stack2.push('B');
+    stack2.push('C');
+    stack2.print();  // Стек заполнен, capacity = 3
+
+    stack2.push('D');  // Здесь произойдет расширение +2
+    cout << "После добавления D:" << endl;
+    stack2.print();
+    cout << "Новый capacity: " << stack2.getCapacity() << endl;
+
+    stack2.push('E');
+    stack2.push('F');  // Еще одно расширение
+    cout << "После добавления E, F:" << endl;
+    stack2.print();
+    cout << "Новый capacity: " << stack2.getCapacity() << endl;
+
+    cout << "Размер стека: " << stack2.size() << endl;
+
+    char c;
+    stack2.peek(c);
+    cout << "Верхний: " << c << endl;
+
+    while (!stack2.isEmpty()) {
+        stack2.pop(c);
+        cout << "Извлекли: " << c << " | ";
+        stack2.print();
+    }
+
+    return 0;
+}
