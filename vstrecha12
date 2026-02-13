@@ -1,0 +1,116 @@
+#include <iostream>
+using namespace std;
+// T - тип элементов, которые будет хранить массив
+template <typename T>
+class Array {
+private:
+    T* data;     // Указатель на динамический массив
+    int size;    // Реальный размер выделенной памяти
+    int count;   // Количество фактически используемых элементов
+    int growBy;  // Шаг расширения памяти
+
+public:
+    // пустой массив
+    Array() : data(nullptr), size(0), count(0), growBy(1) {}
+    // начальный размер + шаг расширения
+    Array(int initialSize, int grow = 1) : data(nullptr), size(0), count(0), growBy(grow) {
+        if (initialSize > 0) SetSize(initialSize);
+    }
+    // освобождаем память
+    ~Array() { delete[] data; }
+
+    int GetSize() const { return size; }
+
+    void SetSize(int newSize, int grow = 1) {
+
+        if (grow > 0) growBy = grow;
+        if (newSize == size) return;
+        if (newSize <= 0) {
+            delete[] data;
+            data = nullptr;
+            size = 0;
+            count = 0;
+            return;
+        }
+        T* newData = new T[newSize];
+
+        int copyCount = (count < newSize) ? count : newSize;
+        for (int i = 0; i < copyCount; i++) newData[i] = data[i];
+
+        delete[] data;
+        data = newData;
+        size = newSize;
+
+        if (count > size) count = size;
+    }
+    int GetUpperBound() const { return (count > 0) ? (count - 1) : -1; }
+
+    // есть ли элементы в массиве?
+    bool IsEmpty() const { return (count == 0); }
+
+    void Add(const T& element) {
+
+        if (count >= size) SetSize(size + growBy);
+        data[count++] = element;
+    }
+    T& operator[](int index) { return data[index]; }              // Для изменения
+    const T& operator[](int index) const { return data[index]; }  // Только чтение
+
+    void RemoveAll() { count = 0; }
+
+    //  вывод массива на экран
+    friend ostream& operator<<(ostream& os, const Array<T>& arr) {
+        os << "[";
+        for (int i = 0; i < arr.count; i++) {
+            os << arr.data[i];
+            if (i < arr.count - 1) os << ", ";
+        }
+        os << "]";
+        return os;
+    }
+};
+
+//  ТЕСТИРОВАНИЕ 
+int main() {
+    setlocale(LC_ALL, "Russian");
+    // Базовые операции
+    Array<int> arr1;
+    arr1.SetSize(5);                    // Выделяем память на 5 элементов
+    cout << "GetSize: " << arr1.GetSize() << endl;
+    cout << "GetUpperBound: " << arr1.GetUpperBound() << endl;  // -1 (пусто)
+    cout << "IsEmpty: " << arr1.IsEmpty() << endl << endl;      // 1 (да)
+
+    //  Добавление элементов и автоматическое расширение
+    Array<string> arr2(3, 2);           // Память: 3, шаг расширения: 2
+    arr2.Add("Первый");
+    arr2.Add("Второй");
+    arr2.Add("Третий");
+    arr2.Add("Четвертый");             // Здесь память расширится до 5 (3+2)
+    cout << "Массив: " << arr2 << endl;
+    cout << "GetSize: " << arr2.GetSize() << endl;
+    cout << "GetUpperBound: " << arr2.GetUpperBound() << endl << endl;
+
+    // : Уменьшение размера
+    Array<double> arr3;
+    for (int i = 0; i < 10; i++) arr3.Add(i * 1.5);
+    cout << "Исходный: " << arr3 << endl;
+    arr3.SetSize(5);                     // Оставляем только первые 5
+    cout << "После SetSize(5): " << arr3 << endl;
+    cout << "GetUpperBound: " << arr3.GetUpperBound() << endl << endl;
+
+    // Полное удаление массива
+    arr3.SetSize(0);                    // Память освобождена
+    cout << "После SetSize(0): " << arr3 << endl;
+    cout << "IsEmpty: " << arr3.IsEmpty() << endl << endl;  // 1 (да)
+
+    //  очистка без освобождения памяти
+    Array<char> arr4(10);               // Выделено памяти на 10 элементов
+    arr4.Add('A'); arr4.Add('B'); arr4.Add('C');
+    cout << "До RemoveAll: " << arr4 << endl;
+    arr4.RemoveAll();
+    cout << "После RemoveAll: " << arr4 << endl;
+    cout << "IsEmpty: " << arr4.IsEmpty() << endl;
+    cout << "GetSize: " << arr4.GetSize() << endl;
+
+    return 0;
+}
