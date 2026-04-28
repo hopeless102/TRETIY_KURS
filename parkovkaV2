@@ -1,0 +1,285 @@
+import datetime
+from datetime import timedelta
+
+# ========== НАСТРОЙКИ ==========
+DEBUG = True  # поменять на False в боевом режиме
+
+# Тариф: рублей в час
+HOURLY_RATE = 100
+
+# Валидные промокоды для бесплатной парковки
+VALID_PROMOCODES = {
+    "DISABLED": "льготник (инвалид)",
+    "VETERAN": "льготник (ветеран)"
+}
+
+# ========== ОТЛАДОЧНАЯ ФУНКЦИЯ ==========
+def log_debug(message):
+    if DEBUG:
+        print(f"[DEBUG] {message}")
+
+
+# ========== ДАННЫЕ В ПАМЯТИ ==========
+# Каждое место: None или словарь с данными брони
+spots = [None] * 11  # индексы 1..10, индекс 0 не используется
+
+
+# ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+def safe_input_int(prompt, min_val, max_val):
+    """Безопасный ввод целого числа с проверкой диапазона"""
+    while True:
+        try:
+            value = int(input(prompt).strip())
+            if min_val <= value <= max_val:
+                return value
+            else:
+                print(f"Ошибка: введите число от {min_val} до {max_val}")
+        except ValueError:
+            print(f"Ошибка: введите целое число!")
+
+
+def safe_input_string(prompt, allow_empty=False):
+    """Безопасный ввод строки (не пустой по умолчанию)"""
+    while True:
+        value = input(prompt).strip()
+        if value or allow_empty:
+            return value
+        print("Ошибка: поле не может быть пустым")
+
+
+def safe_input_promocode():
+    """Безопасный ввод промокода"""
+    while True:
+        promo = input("Введите промокод (или 'НЕТ' если нет): ").strip().upper()
+        if promo == "НЕТ" or promo == "":
+            return None
+        if promo in VALID_PROMOCODES:
+            return promo
+        print(f"Неверный промокод! Доступные: DISABLED, VETERAN или 'НЕТ'")
+
+
+def log_action(message):
+    """Запись действия в лог и вывод на экран"""
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    log_entry = f"[{timestamp}] {message}"
+    print(log_entry)
+
+
+# ========== ОСНОВНАЯ ЛОГИКА ==========
+def show_free_spots():
+    """Показать список свободных мест"""
+    print("\n--- Свободные места ---")
+    free_spots = [i for i in range(1, 11) if spots[i] is None]
+    if free_spots:
+        print(f"Свободны: {free_spots}")
+    else:
+        print("Нет свободных мест")
+    log_debug(f"free_spots={free_spots}")
+    return free_spots
+
+
+def show_active_bookings():
+    """Показать все активные брони с отображением стоимости"""
+    print("\n--- Активные брони ---")
+    has_bookings = False
+    now = datetime.datetime.now()
+    for i in range(1, 11):
+        if spots[i] is not None:
+            booking = spots[i]
+            time_left = booking['end_time'] - now
+            minutes_left = int(time_left.total_seconds() / 60)
+            if minutes_left > 0:
+                has_bookings = True
+                # Отображение стоимости
+                if booking['is_free']:
+                    cost_str = "Бесплатно (льгота)"
+                else:
+                    cost = booking['hours'] * HOURLY_RATE
+                    cost_str = f"{cost} руб."
+                print(f"Место {i}: {booking['name']} (тел. {booking['phone']}), "
+                      f"осталось {minutes_left} мин, до {booking['end_time'].strftime('%H:%M')}, {cost_str}")
+    if not has_bookings:
+        print("Нет активных броней")
+    print()
+
+
+def check_expired_bookings():
+    """Проверить и отменить просроченные брони"""
+    now = datetime.datetime.now()
+    expired = []
+    for i in range(1, 11):
+        if spots[i] is not None and spots[i]['end_time'] < now:
+            expired.append(i)
+    for spot in expired:
+        name = spots[spot]['name']
+        spots[spot] = None
+        log_action(f"Автоотмена брони: место {spot} для {name} (истекло время)")
+    log_debug(f"check_expired: found {len(expired)} expired bookings")
+    return len(expired)
+
+
+def create_booking():
+    """Создать бронь с обработкой всех ошибок"""
+    print("\n--- Новое бронирование ---")
+
+    # Ввод имени с защитой
+    name = safe_input_string("Введите ваше имя: ")
+
+    # Ввод телефона
+    phone = safe_input_string("Введите номер телефона: ")
+
+    # Показ свободных мест
+    show_free_spots()
+
+    # Ввод номера места с защитой
+    if all(spots[i] is not None for i in range(1, 11)):
+        print("Нет свободных мест для бронирования!")
+        return False
+
+    spot_num = safe_input_int("Выберите номер места (1-10): ", 1, 10)
+
+    # Проверка, что место всё ещё свободно
+    if not is_spot_free(spot_num):
+        log_action(f"Ошибка: место {spot_num} уже занято кем-то другим")
+        return False
+
+    # Ввод времени с защитой
+    while True:
+        try:
+            hours = float(input("На сколько часов бронировать? (0.5-24): ").strip())
+            if 0.5 <= hours <= 24:
+                break
+            else:
+                print("Ошибка: введите время от 0.5 до 24 часов")
+        except ValueError:
+            print("Ошибка: введите число!")
+
+    # Ввод промокода
+    promo = safe_input_promocode()
+
+    # Расчёт стоимости
+    is_free = promo is not None
+    if is_free:
+        discount_type = VALID_PROMOCODES[promo]
+        log_action(f"Применён промокод {promo} ({discount_type}) — парковка бесплатная")
+    else:
+        cost = hours * HOURLY_RATE
+        print(f"Стоимость парковки: {cost} руб. ({HOURLY_RATE} руб./час)")
+
+    start_time = datetime.datetime.now()
+    end_time = start_time + timedelta(hours=hours)
+
+    spots[spot_num] = {
+        'name': name,
+        'phone': phone,
+        'start_time': start_time,
+        'end_time': end_time,
+        'hours': hours,
+        'promocode': promo,
+        'is_free': is_free
+    }
+
+    log_debug(f"booking created: spot={spot_num}, name={name}, hours={hours}, is_free={is_free}")
+    log_action(f"Бронь создана: место {spot_num} для {name} на {hours} час(ов) (до {end_time.strftime('%H:%M')})")
+    return True
+
+
+def is_spot_free(spot_num):
+    """Проверить, свободно ли место"""
+    return 1 <= spot_num <= 10 and spots[spot_num] is None
+
+
+def cancel_booking_by_phone():
+    """Отменить бронь по номеру телефона с защитой"""
+    phone = safe_input_string("Введите номер телефона для отмены брони: ")
+
+    found_spots = []
+    for i in range(1, 11):
+        if spots[i] is not None and spots[i]['phone'] == phone:
+            found_spots.append(i)
+
+    if not found_spots:
+        log_action(f"Ошибка: бронь с номером {phone} не найдена")
+        return False
+
+    # Если несколько броней на один номер
+    if len(found_spots) > 1:
+        print(f"Найдено несколько броней для номера {phone}: места {found_spots}")
+        spot_num = safe_input_int("Введите номер места для отмены: ", 1, 10)
+        if spot_num not in found_spots:
+            log_action(f"Ошибка: место {spot_num} не принадлежит номеру {phone}")
+            return False
+    else:
+        spot_num = found_spots[0]
+
+    name = spots[spot_num]['name']
+    spots[spot_num] = None
+    log_action(f"Бронь отменена: место {spot_num} для {name} (по номеру телефона)")
+    return True
+
+
+def cancel_booking_by_spot():
+    """Отменить бронь по номеру места с защитой"""
+    spot_num = safe_input_int("Введите номер места для отмены брони (1-10): ", 1, 10)
+
+    if spots[spot_num] is None:
+        log_action(f"Ошибка: место {spot_num} не забронировано")
+        return False
+
+    name = spots[spot_num]['name']
+    spots[spot_num] = None
+    log_action(f"Бронь отменена: место {spot_num} для {name}")
+    return True
+
+
+# ========== ГЛАВНОЕ МЕНЮ ==========
+def main_menu():
+    """Главное меню программы с обработкой всех ошибок"""
+    while True:
+        print("\n" + "=" * 55)
+        print("      СИСТЕМА УПРАВЛЕНИЯ ПАРКОВКОЙ (SmartPark) v2")
+        print("=" * 55)
+        print("1. Посмотреть свободные места")
+        print("2. Забронировать место")
+        print("3. Отменить бронь по номеру телефона")
+        print("4. Отменить бронь по номеру места")
+        print("5. Просмотреть активные брони")
+        print("6. Проверить просроченные брони вручную")
+        print("0. Выход")
+        print("-" * 55)
+
+        choice = input("Ваш выбор: ").strip()
+
+        try:
+            if choice == '1':
+                show_free_spots()
+            elif choice == '2':
+                create_booking()
+            elif choice == '3':
+                cancel_booking_by_phone()
+            elif choice == '4':
+                cancel_booking_by_spot()
+            elif choice == '5':
+                show_active_bookings()
+            elif choice == '6':
+                expired_count = check_expired_bookings()
+                if expired_count == 0:
+                    print("Просроченных броней нет")
+            elif choice == '0':
+                print("Выход из программы. До свидания!")
+                break
+            else:
+                print("Неверный выбор. Попробуйте снова.")
+        except Exception as e:
+            # Финальный обработчик на случай непредвиденных ошибок
+            print(f"Произошла непредвиденная ошибка: {e}")
+            log_debug(f"UNHANDLED EXCEPTION: {e}")
+
+
+if __name__ == "__main__":
+    print("Добро пожаловать в систему управления парковкой SmartPark v2!")
+    print("(с поддержкой льготных промокодов DISABLED / VETERAN)")
+    if DEBUG:
+        print("[РЕЖИМ ОТЛАДКИ ВКЛЮЧЁН]")
+    print()
+    main_menu()
